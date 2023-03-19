@@ -1,6 +1,6 @@
 const sha256 = require('sha256');
 const currentNodeUrl = process.argv[3];
-const { v1: uuidv1 } = require('uuid');
+const uuid = require('uuid/v1');
 
 class Blockchain {
   constructor() {
@@ -33,22 +33,17 @@ class Blockchain {
     return this.chain[this.chain.length - 1];
   }
 
-  createNewTransaction(amount, senderWallet, recipient) {
-    const newTransaction = new Transaction(senderWallet.publicKey, recipient, amount);
-    newTransaction.timestamp = Date.now();
-    newTransaction.transactionId = uuidv1();
-    newTransaction.sender = senderWallet.publicKey;
-    newTransaction.signature = senderWallet.signTransaction(newTransaction);
-  
-    const isValid = this.verifyTransaction(newTransaction);
-    if (!isValid) {
-      throw new Error('Invalid transaction!');
-    }
+  createNewTransaction(amount, sender, recipient) {
+    const newTransaction = {
+      amount,
+      sender,
+      recipient,
+      transactionId: uuid().split('-').join('')
+    };
   
     return newTransaction;
-  }
+  };
   
-
   addTransactionToPendingTransactions(transactionObj) {
     this.pendingTransactions.push(transactionObj);
     return this.getLastBlock()['index'] + 1;
@@ -74,7 +69,7 @@ class Blockchain {
   chainIsValid (blockchain) {
     let validChain = true;
 
-    for (var i = 1; i < blockchain.length; i++) {
+    for (let i = 1; i < blockchain.length; i++) {
       const currentBlock = blockchain[i];
       const prevBlock = blockchain[i - 1];
       const blockHash = this.hashBlock(prevBlock['hash'], { transactions: currentBlock['transactions'], index: currentBlock['index'] }, currentBlock['nonce']);
@@ -144,20 +139,6 @@ class Blockchain {
   }
 }
 
-class Transaction {
-  constructor(sender, recipient, amount) {
-    this.sender = sender;
-    this.recipient = recipient;
-    this.amount = amount;
-    this.timestamp = Date.now();
-    this.transactionId = uuidv1();
-  }
 
-  calculateHash() {
-    const dataAsString = this.sender + this.recipient + this.amount + this.timestamp;
-    const hash = sha256(dataAsString);
-    return hash;
-  }
-}
 
 module.exports = Blockchain;

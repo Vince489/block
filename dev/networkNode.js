@@ -22,19 +22,10 @@ app.get('/blockchain', function (req, res) {
 
 
 // create a new transaction
-// app.post('/transaction', function(req, res) {
-// 	const newTransaction = req.body;
-// 	const blockIndex = bitcoin.addTransactionToPendingTransactions(newTransaction);
-// 	res.json({ note: `Transaction will be added in block ${blockIndex}.` });
-// });
-
 app.post('/transaction', function(req, res) {
-  const { amount, sender, recipient } = req.body;
-  const newTransaction = bitcoin.createNewTransaction(amount, sender, recipient);
-  const senderWallet = new Wallet();
-  senderWallet.signTransaction(newTransaction);
-  bitcoin.addTransactionToPendingTransactions(newTransaction);
-  res.json({ note: `Transaction will be added in block ${newTransaction.blockIndex}.` });
+	const newTransaction = req.body;
+	const blockIndex = bitcoin.addTransactionToPendingTransactions(newTransaction);
+	res.json({ note: `Transaction will be added in block ${blockIndex}.` });
 });
 
 
@@ -278,10 +269,5 @@ app.get('/block-explorer', function(req, res) {
 
 
 app.listen(port, function() {
-	console.log(`Listening on port ${port}...`);
+	console.log(`Listening on http://localhost:${port}`);
 });
-
-
-
-
-
