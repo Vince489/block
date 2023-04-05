@@ -1,53 +1,49 @@
 const sha256 = require('sha256');
 const currentNodeUrl = process.argv[3];
 const uuid = require('uuid/v1');
+const Block = require('./block');
+const Transaction = require('./transaction');
+
 
 class Blockchain {
   constructor() {
     this.chain = [];
     this.pendingTransactions = [];
-
     this.currentNodeUrl = currentNodeUrl;
     this.networkNodes = [];
-
     this.createNewBlock(100, '0', '0');
   }
 
   createNewBlock(nonce, previousBlockHash, hash) {
-    const newBlock = {
-      index: this.chain.length + 1,
-      timestamp: Date.now(),
-      transactions: this.pendingTransactions,
-      nonce: nonce,
-      hash: hash,
-      previousBlockHash: previousBlockHash,
-    };
-
+    const newBlock = new Block(
+      this.chain.length + 1,
+      Date.now(),
+      this.pendingTransactions,
+      nonce,
+      hash,
+      previousBlockHash
+    );
+  
     this.pendingTransactions = [];
     this.chain.push(newBlock);
-
+  
     return newBlock;
   }
-
+  
   getLastBlock() {
     return this.chain[this.chain.length - 1];
   }
 
   createNewTransaction(amount, sender, recipient) {
-    const newTransaction = {
-      amount,
-      sender,
-      recipient,
-      transactionId: uuid().split('-').join('')
-    };
-  
+    const transactionId = uuid().split('-').join('');
+    const newTransaction = new Transaction(amount, sender, recipient, transactionId);
     return newTransaction;
-  };
-  
-  addTransactionToPendingTransactions(transactionObj) {
-    this.pendingTransactions.push(transactionObj);
-    return this.getLastBlock()['index'] + 1;
   }
+  
+  addTransactionToPendingTransactions(transaction) {
+    this.pendingTransactions.push(transaction);
+    return this.getLastBlock().index + 1;
+  }  
 
   hashBlock(previousBlockHash, currentBlockData, nonce) {
     const dataAsString =

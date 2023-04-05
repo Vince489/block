@@ -265,9 +265,6 @@ app.get('/block-explorer', function(req, res) {
 });
 
 
-
-
-
 app.listen(port, function() {
 	console.log(`Listening on http://localhost:${port}`);
 });

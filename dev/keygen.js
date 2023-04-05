@@ -18,8 +18,12 @@ const child = root.derive(path);
 const privateKey = child.privateKey.toString('hex');
 const publicKey = child.publicKey.toString('hex');
 
+
 // Log the results
 console.log('BIP39 Mnemonic Phrase:', mnemonic);
 console.log('Derived Path:', path);
 console.log('Private Key:', privateKey);
 console.log('Public Key:', publicKey);
+
+
+
