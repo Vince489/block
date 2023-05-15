@@ -1,10 +1,11 @@
 class Token {
-  constructor(name, symbol, totalSupply) {
+  constructor(name, symbol) {
     this.name = name;
     this.symbol = symbol;
-    this.totalSupply = totalSupply;
+    this.totalSupply = 0;
     this.balances = new Map();
   }
 }
+
 
 module.exports = Token;

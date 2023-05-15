@@ -8,7 +8,7 @@ const rp = require('request-promise');
 
 const nodeAddress = uuid().split('-').join('');
 
-const bitcoin = new Blockchain();
+const virtue = new Blockchain();
 
 
 app.use(bodyParser.json());
@@ -17,25 +17,25 @@ app.use(bodyParser.urlencoded({ extended: false }));
 
 // get entire blockchain
 app.get('/blockchain', function (req, res) {
-  res.send(bitcoin);
+  res.send(virtue);
 });
 
 
 // create a new transaction
 app.post('/transaction', function(req, res) {
 	const newTransaction = req.body;
-	const blockIndex = bitcoin.addTransactionToPendingTransactions(newTransaction);
+	const blockIndex = virtue.addTransactionToPendingTransactions(newTransaction);
 	res.json({ note: `Transaction will be added in block ${blockIndex}.` });
 });
 
 
 // broadcast transaction
 app.post('/transaction/broadcast', function(req, res) {
-	const newTransaction = bitcoin.createNewTransaction(req.body.amount, req.body.sender, req.body.recipient);
-	bitcoin.addTransactionToPendingTransactions(newTransaction);
+	const newTransaction = virtue.createNewTransaction(req.body.amount, req.body.sender, req.body.recipient);
+	virtue.addTransactionToPendingTransactions(newTransaction);
 
 	const requestPromises = [];
-	bitcoin.networkNodes.forEach(networkNodeUrl => {
+	virtue.networkNodes.forEach(networkNodeUrl => {
 		const requestOptions = {
 			uri: networkNodeUrl + '/transaction',
 			method: 'POST',
@@ -55,18 +55,18 @@ app.post('/transaction/broadcast', function(req, res) {
 
 // mine a block
 app.get('/mine', function(req, res) {
-	const lastBlock = bitcoin.getLastBlock();
+	const lastBlock = virtue.getLastBlock();
 	const previousBlockHash = lastBlock['hash'];
 	const currentBlockData = {
-		transactions: bitcoin.pendingTransactions,
+		transactions: virtue.pendingTransactions,
 		index: lastBlock['index'] + 1
 	};
-	const nonce = bitcoin.proofOfWork(previousBlockHash, currentBlockData);
-	const blockHash = bitcoin.hashBlock(previousBlockHash, currentBlockData, nonce);
-	const newBlock = bitcoin.createNewBlock(nonce, previousBlockHash, blockHash);
+	const nonce = virtue.proofOfWork(previousBlockHash, currentBlockData);
+	const blockHash = virtue.hashBlock(previousBlockHash, currentBlockData, nonce);
+	const newBlock = virtue.createNewBlock(nonce, previousBlockHash, blockHash);
 
 	const requestPromises = [];
-	bitcoin.networkNodes.forEach(networkNodeUrl => {
+	virtue.networkNodes.forEach(networkNodeUrl => {
 		const requestOptions = {
 			uri: networkNodeUrl + '/receive-new-block',
 			method: 'POST',
@@ -80,7 +80,7 @@ app.get('/mine', function(req, res) {
 	Promise.all(requestPromises)
 	.then(data => {
 		const requestOptions = {
-			uri: bitcoin.currentNodeUrl + '/transaction/broadcast',
+			uri: virtue.currentNodeUrl + '/transaction/broadcast',
 			method: 'POST',
 			body: {
 				amount: 12.5,
@@ -104,13 +104,13 @@ app.get('/mine', function(req, res) {
 // receive new block
 app.post('/receive-new-block', function(req, res) {
 	const newBlock = req.body.newBlock;
-	const lastBlock = bitcoin.getLastBlock();
+	const lastBlock = virtue.getLastBlock();
 	const correctHash = lastBlock.hash === newBlock.previousBlockHash; 
 	const correctIndex = lastBlock['index'] + 1 === newBlock['index'];
 
 	if (correctHash && correctIndex) {
-		bitcoin.chain.push(newBlock);
-		bitcoin.pendingTransactions = [];
+		virtue.chain.push(newBlock);
+		virtue.pendingTransactions = [];
 		res.json({
 			note: 'New block received and accepted.',
 			newBlock: newBlock
@@ -127,10 +127,10 @@ app.post('/receive-new-block', function(req, res) {
 // register a node and broadcast it the network
 app.post('/register-and-broadcast-node', function(req, res) {
 	const newNodeUrl = req.body.newNodeUrl;
-	if (bitcoin.networkNodes.indexOf(newNodeUrl) == -1) bitcoin.networkNodes.push(newNodeUrl);
+	if (virtue.networkNodes.indexOf(newNodeUrl) == -1) virtue.networkNodes.push(newNodeUrl);
 
 	const regNodesPromises = [];
-	bitcoin.networkNodes.forEach(networkNodeUrl => {
+	virtue.networkNodes.forEach(networkNodeUrl => {
 		const requestOptions = {
 			uri: networkNodeUrl + '/register-node',
 			method: 'POST',
@@ -146,7 +146,7 @@ app.post('/register-and-broadcast-node', function(req, res) {
 		const bulkRegisterOptions = {
 			uri: newNodeUrl + '/register-nodes-bulk',
 			method: 'POST',
-			body: { allNetworkNodes: [ ...bitcoin.networkNodes, bitcoin.currentNodeUrl ] },
+			body: { allNetworkNodes: [ ...virtue.networkNodes, virtue.currentNodeUrl ] },
 			json: true
 		};
 
@@ -161,9 +161,9 @@ app.post('/register-and-broadcast-node', function(req, res) {
 // register a node with the network
 app.post('/register-node', function(req, res) {
 	const newNodeUrl = req.body.newNodeUrl;
-	const nodeNotAlreadyPresent = bitcoin.networkNodes.indexOf(newNodeUrl) == -1;
-	const notCurrentNode = bitcoin.currentNodeUrl !== newNodeUrl;
-	if (nodeNotAlreadyPresent && notCurrentNode) bitcoin.networkNodes.push(newNodeUrl);
+	const nodeNotAlreadyPresent = virtue.networkNodes.indexOf(newNodeUrl) == -1;
+	const notCurrentNode = virtue.currentNodeUrl !== newNodeUrl;
+	if (nodeNotAlreadyPresent && notCurrentNode) virtue.networkNodes.push(newNodeUrl);
 	res.json({ note: 'New node registered successfully.' });
 });
 
@@ -172,9 +172,9 @@ app.post('/register-node', function(req, res) {
 app.post('/register-nodes-bulk', function(req, res) {
 	const allNetworkNodes = req.body.allNetworkNodes;
 	allNetworkNodes.forEach(networkNodeUrl => {
-		const nodeNotAlreadyPresent = bitcoin.networkNodes.indexOf(networkNodeUrl) == -1;
-		const notCurrentNode = bitcoin.currentNodeUrl !== networkNodeUrl;
-		if (nodeNotAlreadyPresent && notCurrentNode) bitcoin.networkNodes.push(networkNodeUrl);
+		const nodeNotAlreadyPresent = virtue.networkNodes.indexOf(networkNodeUrl) == -1;
+		const notCurrentNode = virtue.currentNodeUrl !== networkNodeUrl;
+		if (nodeNotAlreadyPresent && notCurrentNode) virtue.networkNodes.push(networkNodeUrl);
 	});
 
 	res.json({ note: 'Bulk registration successful.' });
@@ -184,7 +184,7 @@ app.post('/register-nodes-bulk', function(req, res) {
 // consensus
 app.get('/consensus', function(req, res) {
 	const requestPromises = [];
-	bitcoin.networkNodes.forEach(networkNodeUrl => {
+	virtue.networkNodes.forEach(networkNodeUrl => {
 		const requestOptions = {
 			uri: networkNodeUrl + '/blockchain',
 			method: 'GET',
@@ -196,7 +196,7 @@ app.get('/consensus', function(req, res) {
 
 	Promise.all(requestPromises)
 	.then(blockchains => {
-		const currentChainLength = bitcoin.chain.length;
+		const currentChainLength = virtue.chain.length;
 		let maxChainLength = currentChainLength;
 		let newLongestChain = null;
 		let newPendingTransactions = null;
@@ -210,18 +210,18 @@ app.get('/consensus', function(req, res) {
 		});
 
 
-		if (!newLongestChain || (newLongestChain && !bitcoin.chainIsValid(newLongestChain))) {
+		if (!newLongestChain || (newLongestChain && !virtue.chainIsValid(newLongestChain))) {
 			res.json({
 				note: 'Current chain has not been replaced.',
-				chain: bitcoin.chain
+				chain: virtue.chain
 			});
 		}
 		else {
-			bitcoin.chain = newLongestChain;
-			bitcoin.pendingTransactions = newPendingTransactions;
+			virtue.chain = newLongestChain;
+			virtue.pendingTransactions = newPendingTransactions;
 			res.json({
 				note: 'This chain has been replaced.',
-				chain: bitcoin.chain
+				chain: virtue.chain
 			});
 		}
 	});
@@ -231,7 +231,7 @@ app.get('/consensus', function(req, res) {
 // get block by blockHash
 app.get('/block/:blockHash', function(req, res) { 
 	const blockHash = req.params.blockHash;
-	const correctBlock = bitcoin.getBlock(blockHash);
+	const correctBlock = virtue.getBlock(blockHash);
 	res.json({
 		block: correctBlock
 	});
@@ -241,7 +241,7 @@ app.get('/block/:blockHash', function(req, res) {
 // get transaction by transactionId
 app.get('/transaction/:transactionId', function(req, res) {
 	const transactionId = req.params.transactionId;
-	const trasactionData = bitcoin.getTransaction(transactionId);
+	const trasactionData = virtue.getTransaction(transactionId);
 	res.json({
 		transaction: trasactionData.transaction,
 		block: trasactionData.block
@@ -252,7 +252,7 @@ app.get('/transaction/:transactionId', function(req, res) {
 // get address by address
 app.get('/address/:address', function(req, res) {
 	const address = req.params.address;
-	const addressData = bitcoin.getAddressData(address);
+	const addressData = virtue.getAddressData(address);
 	res.json({
 		addressData: addressData
 	});

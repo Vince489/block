@@ -2,8 +2,87 @@ const sha256 = require('sha256');
 const currentNodeUrl = process.argv[3];
 const uuid = require('uuid/v1');
 const Block = require('./block');
-// const Transaction = require('./transaction');
+const EC = require('elliptic').ec;
+const ec = new EC('ed25519');
 
+const bip39 = require('bip39');
+const hdkey = require('hdkey');
+const crypto = require('crypto');
+const bs58 = require('bs58');
+
+class Token {
+  constructor(name, symbol, totalSupply) {
+    this.name = name;
+    this.symbol = symbol;
+    this.totalSupply = totalSupply;
+    this.balanceMap = {};
+  }
+
+  createTokenAccount(address) {
+    if (!this.balanceMap[address]) {
+      this.balanceMap[address] = 0;
+    }
+  }
+
+  getBalance(address) {
+    return this.balanceMap[address] || 0;
+  }
+
+  transfer(sender, recipient, amount) {
+    if (this.getBalance(sender) >= amount) {
+      this.balanceMap[sender] -= amount;
+      this.balanceMap[recipient] = (this.balanceMap[recipient] || 0) + amount;
+      return true;
+    }
+    return false;
+  }
+}
+
+class TokenAccount {
+  constructor(token) {
+    this.token = token;
+    this.metadata = {};
+  }
+
+  getBalance() {
+    return this.token.getBalance(this.address);
+  }
+
+  transfer(recipient, amount) {
+    return this.token.transfer(this.address, recipient, amount);
+  }
+}
+
+class Transaction {
+  constructor(amount, sender, recipient, transactionId, tokenAccount) {
+    this.amount = amount;
+    this.sender = sender;
+    this.recipient = recipient;
+    this.transactionId = transactionId;
+    this.tokenAccount = tokenAccount;
+  }
+
+  signTransaction(key) {
+    const sign = key.sign(this.toString(), 'base64');
+    this.signature = sign.toDER('hex');
+  }
+
+  isValid() {
+    if (!this.signature || this.signature === '') {
+      throw new Error('No signature in this transaction');
+    }
+
+    const publicKey = this.tokenAccount.address.getPublic().encode('hex');
+    const verifier = crypto.createVerify('SHA256');
+    verifier.update(this.toString());
+
+    return verifier.verify(publicKey, this.signature);
+  }
+
+  // toString() {
+  //   return JSON.stringify(this);
+  // }
+}
 
 class Blockchain {
   constructor() {
@@ -11,6 +90,7 @@ class Blockchain {
     this.pendingTransactions = [];
     this.currentNodeUrl = currentNodeUrl;
     this.networkNodes = [];
+    this.token = new Token('MyToken', 'MTK', 1000000);
     this.createNewBlock(100, '0', '0');
   }
 
@@ -23,27 +103,30 @@ class Blockchain {
       hash,
       previousBlockHash
     );
-  
+
     this.pendingTransactions = [];
     this.chain.push(newBlock);
-  
+
     return newBlock;
   }
-  
+
   getLastBlock() {
     return this.chain[this.chain.length - 1];
   }
 
-  createNewTransaction(amount, sender, recipient) {
+  createNewTransaction(amount, sender, recipient, tokenAccount) {
     const transactionId = uuid().split('-').join('');
-    const newTransaction = new Transaction(amount, sender, recipient, transactionId);
+    const newTransaction = new Transaction(amount, sender, recipient, transactionId, tokenAccount);
     return newTransaction;
   }
-  
+
   addTransactionToPendingTransactions(transaction) {
-    this.pendingTransactions.push(transaction);
-    return this.getLastBlock().index + 1;
-  }  
+    if (transaction.isValid()) {
+      this.pendingTransactions.push(transaction);
+      return this.getLastBlock().index + 1;
+    }
+    throw new Error('Invalid transaction');
+  }
 
   hashBlock(previousBlockHash, currentBlockData, nonce) {
     const dataAsString =
@@ -135,6 +218,19 @@ class Blockchain {
   }
 }
 
+const bitcoin = new Blockchain();
+const tokenAccount = new TokenAccount(bitcoin.token);
+const key = ec.genKeyPair();
+const publicKey = key.getPublic('hex');
+const privateKey = key.getPrivate('hex');
+const address = key.getPublic();
+tokenAccount.address = address;
 
+const tx1 = bitcoin.createNewTransaction(100, 'address1', 'address2', tokenAccount);
+tx1.signTransaction(key);
+bitcoin.addTransactionToPendingTransactions(tx1);
 
-module.exports = Blockchain;
+const tx2 = bitcoin.createNewTransaction(50, 'address2', 'address1', tokenAccount);
+tx2.signTransaction(key);
+bitcoin.addTransactionToPendingTransactions(tx2);
+

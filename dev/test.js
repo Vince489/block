@@ -1,5 +1,5 @@
 const Blockchain = require('./blockchain');
-const bitcoin = new Blockchain();
+const virtue = new Blockchain();
 
 
 const bc1 = {
@@ -138,7 +138,7 @@ const bc1 = {
 
 
 
-console.log('VALID: ', bitcoin.chainIsValid(bc1.chain));
+console.log('VALID: ', virtue.chainIsValid(bc1.chain));
 
 
 
