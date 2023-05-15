@@ -1,0 +1,35 @@
+{
+  "Gamers": [
+    {
+      "id": "97415e68faa74b0b9282222a5fc68ba0",
+      "gamerTag": "wpre",
+      "password": "1234",
+      "pubKey": "9xyHhgHaBL2zTUnKXSAAGjdhERvxo61dLsEf3vvzCyHk",
+      "pvtKey": "4whRfKeKAEp7HibLzZdQvHVsYZBCVtUMueqmzKMmQFoiB8zcfuGU3mJsEXhzeWrLWfH9f7nzM2geJrXCdWTtYU9p",
+      "fighterId": "42415e68faa74b0b9282333a5fcMr3z0"
+    },
+    {
+      "id": "7ede065be0bc4fa4b23eb6ad802fb590",
+      "gamerTag": "Hello",
+      "password": "1234",
+      "pubKey": "8LRifXfiQknEquueZPoFj76fe7BDLhdmB1pyjiav9CcQ",
+      "pvtKey": "2YL4tCW11T9ttCDGkwWxhyPgDKSQ27rPtU1fP3CVQCudoe1MzQaZeYv2BzMy3qzAPuXVsozKgRMy9JpVr55jqjE8"
+    }
+  ],
+  "Fighters": [
+    {
+      "id": "42415e68faa74b0b9282333a5fcMr3z0",
+      "firstName": "Mr",
+      "lastName": "3z",
+      "ovr": 81,
+      "height": {
+        "feet": 6,
+        "inches": 2
+      },
+      "weight": 200,
+      "reach": 72
+    }
+  ],
+  "Tokens": [],
+  "Transactions": []
+}
